@@ -1,0 +1,238 @@
+import 'dart:io';
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:simple_painter/app/presentation/build_backgrodund.dart';
+import 'package:simple_painter/app/presentation/gallery/widget/color_picker_dialog.dart';
+import 'package:simple_painter/app/presentation/gallery/widget/drawing_painter.dart';
+import 'package:simple_painter/app/presentation/gallery/widget/stroke_picker.dart';
+import 'package:simple_painter/main.dart';
+import 'package:simple_painter/shared/utils/app_bar.dart';
+import 'package:simple_painter/shared/utils/pick_image.dart';
+import 'dart:ui' as ui show Image;
+import 'package:path_provider/path_provider.dart';
+
+class NewPhotoScreen extends StatefulWidget {
+  const NewPhotoScreen({super.key});
+
+  @override
+  State<NewPhotoScreen> createState() => _NewPhotoScreenState();
+}
+
+class _NewPhotoScreenState extends State<NewPhotoScreen> {
+  final List<Offset?> _points = [];
+
+  Color _currentColor = Colors.red;
+
+  double _strokeWidth = 4.0;
+
+  void _pickColor() async {
+    final color = await showDialog<Color>(
+      context: context,
+      builder: (_) => ColorPickerDialog(currentColor: _currentColor),
+    );
+    if (color != null) setState(() => _currentColor = color);
+  }
+
+  void _pickStrokeWidth() async {
+    final strokeWidth = await showDialog<double>(
+      context: context,
+      builder: (_) => StrokeWidthPickerDialog(strokeWidth: _strokeWidth),
+    );
+    if (strokeWidth != null) setState(() => _strokeWidth = strokeWidth);
+  }
+
+  File? file;
+  ui.Image? _uiImage;
+
+  void _pickImage(BuildContext context) async {
+    try {
+      File? galleryFile = await pickImage(context, ImageSource.gallery);
+
+      if (galleryFile != null) {
+        // setState(() {
+        //   file = galleryFile;
+        // });
+        final uint8List = await galleryFile.readAsBytes();
+        ui.Image myBackground = await decodeImageFromList(uint8List);
+        setState(() {
+          _uiImage = myBackground;
+        });
+      }
+    } catch (e) {
+      logger.e(
+        'Error while fetching Image from gallery or while converting to uiImage',
+      );
+    }
+  }
+
+  void _clear() => setState(() => _points.clear());
+
+  final _repaintBoundaryKey = GlobalKey();
+
+  Uint8List? _capturedImageBytes;
+  Future<Uint8List?> _capturePng() async {
+    try {
+      final RenderRepaintBoundary boundary =
+          _repaintBoundaryKey.currentContext!.findRenderObject()!
+              as RenderRepaintBoundary;
+
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+
+      final ByteData? byteData = await image.toByteData(
+        format: ImageByteFormat.png,
+      );
+
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      logger.e('Error _capturePng method: while capturing png');
+      return null;
+    }
+  }
+
+  Future<void> _convertToFile() async {
+    final bytes = await _capturePng();
+    if (bytes != null) {
+      final xFile = XFile.fromData(
+        bytes,
+        name: 'my_drawing.png',
+        mimeType: 'image/png',
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BuildBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: CustomAppBar(
+          titleText: 'Новое изображение',
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: SvgPicture.asset(
+              'assets/icons/arrow_left.svg',
+              height: 24,
+              width: 24,
+            ),
+          ),
+          action: GestureDetector(
+            onTap: () async {
+              final bytes = await _capturePng();
+              if (bytes != null) {
+                setState(() {
+                  _capturedImageBytes = bytes;
+                });
+              }
+            },
+            child: SvgPicture.asset(
+              'assets/icons/ready.svg',
+              height: 24,
+              width: 24,
+            ),
+          ),
+        ),
+        //AppBar(backgroundColor: Colors.transparent, elevation: 0, ,),
+        body: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  24.verticalSpace,
+                  Row(
+                    spacing: 12,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _buildIcons(
+                        svgPath: 'assets/icons/download.svg',
+                        onTap: () {},
+                      ),
+                      _buildIcons(
+                        svgPath: 'assets/icons/gallery.svg',
+                        onTap: () => _pickImage(context),
+                      ),
+                      _buildIcons(
+                        svgPath: 'assets/icons/pencil.svg',
+                        onTap: _pickStrokeWidth,
+                      ),
+                      _buildIcons(
+                        svgPath: 'assets/icons/clear.svg',
+                        onTap: _clear,
+                      ),
+                      _buildIcons(
+                        svgPath: 'assets/icons/palette.svg',
+                        onTap: _pickColor,
+                      ),
+                    ],
+                  ),
+                  24.verticalSpace,
+                  AspectRatio(
+                    aspectRatio: 0.75,
+                    child: ClipRRect(
+                      clipBehavior: Clip.antiAlias,
+                      borderRadius: BorderRadius.circular(20),
+                      child: GestureDetector(
+                        onPanStart: (details) {
+                          setState(() {
+                            _points.add(details.localPosition);
+                          });
+                        },
+                        onPanUpdate: (details) {
+                          setState(() {
+                            _points.add(details.localPosition);
+                          });
+                        },
+                        onPanEnd: (details) {
+                          _points.add(null);
+                        },
+                        child: Container(
+                          color: Colors.white,
+
+                          child: RepaintBoundary(
+                            key: _repaintBoundaryKey,
+                            child: CustomPaint(
+                              painter: DrawingPainter(
+                                points: _points,
+                                color: _currentColor,
+                                strokeWidth: _strokeWidth,
+                                myBackground: _uiImage,
+                              ),
+                              size: Size.infinite,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIcons({required String svgPath, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(9),
+        width: 38,
+        height: 38,
+        clipBehavior: Clip.antiAlias,
+        decoration: ShapeDecoration(
+          color: Colors.white.withValues(alpha: 0.20),
+          shape: CircleBorder(),
+        ),
+        child: SvgPicture.asset(svgPath),
+      ),
+    );
+  }
+}
