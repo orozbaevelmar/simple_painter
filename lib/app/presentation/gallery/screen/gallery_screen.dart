@@ -18,33 +18,7 @@ class GalleryScreen extends StatelessWidget {
     return BuildBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: CustomAppBar(
-          titleText: 'Галерея',
-          leading: GestureDetector(
-            onTap: () {
-              DialogWidget.show(
-                context,
-                title: "Выйти из аккаунта?",
-                description:
-                    'Чтобы подтвердить нажмите на кнопку "Подтвердить"',
-                onConfirmTap: () async {
-                  Go.pushAndRemoveUntil(context, LoginScreen());
-                },
-              );
-            },
-            child: SvgPicture.asset(
-              'assets/icons/logout.svg',
-              height: 24,
-              width: 24,
-            ),
-          ),
-          action: SvgPicture.asset(
-            'assets/icons/logout.svg',
-            height: 24,
-            width: 24,
-            colorFilter: ColorFilter.mode(Colors.transparent, BlendMode.srcIn),
-          ),
-        ),
+        appBar: _buildAppBar(context),
         //AppBar(backgroundColor: Colors.transparent, elevation: 0, ,),
         body: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -89,6 +63,35 @@ class GalleryScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  CustomAppBar _buildAppBar(BuildContext context) {
+    return CustomAppBar(
+      titleText: 'Галерея',
+      leading: GestureDetector(
+        onTap: () {
+          DialogWidget.show(
+            context,
+            title: "Выйти из аккаунта?",
+            description: 'Чтобы подтвердить нажмите на кнопку "Подтвердить"',
+            onConfirmTap: () async {
+              Go.pushAndRemoveUntil(context, LoginScreen());
+            },
+          );
+        },
+        child: SvgPicture.asset(
+          'assets/icons/logout.svg',
+          height: 24,
+          width: 24,
+        ),
+      ),
+      action: SvgPicture.asset(
+        'assets/icons/logout.svg',
+        height: 24,
+        width: 24,
+        colorFilter: ColorFilter.mode(Colors.transparent, BlendMode.srcIn),
       ),
     );
   }

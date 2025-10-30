@@ -11,6 +11,7 @@ import 'package:simple_painter/app/presentation/build_backgrodund.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/color_picker_dialog.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/drawing_painter.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/stroke_picker.dart';
+import 'package:simple_painter/core/services/native_share_service.dart';
 import 'package:simple_painter/main.dart';
 import 'package:simple_painter/shared/utils/app_bar.dart';
 import 'package:simple_painter/shared/utils/pick_image.dart';
@@ -106,111 +107,50 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BuildBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: CustomAppBar(
-          titleText: 'Новое изображение',
-          leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: SvgPicture.asset(
-              'assets/icons/arrow_left.svg',
-              height: 24,
-              width: 24,
-            ),
-          ),
-          action: GestureDetector(
-            onTap: () async {
-              final bytes = await _capturePng();
-              if (bytes != null) {
-                setState(() {
-                  _capturedImageBytes = bytes;
-                });
-              }
-            },
-            child: SvgPicture.asset(
-              'assets/icons/ready.svg',
-              height: 24,
-              width: 24,
-            ),
-          ),
-        ),
-        //AppBar(backgroundColor: Colors.transparent, elevation: 0, ,),
-        body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  24.verticalSpace,
-                  Row(
-                    spacing: 12,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _buildIcons(
-                        svgPath: 'assets/icons/download.svg',
-                        onTap: () {},
-                      ),
-                      _buildIcons(
-                        svgPath: 'assets/icons/gallery.svg',
-                        onTap: () => _pickImage(context),
-                      ),
-                      _buildIcons(
-                        svgPath: 'assets/icons/pencil.svg',
-                        onTap: _pickStrokeWidth,
-                      ),
-                      _buildIcons(
-                        svgPath: 'assets/icons/clear.svg',
-                        onTap: _clear,
-                      ),
-                      _buildIcons(
-                        svgPath: 'assets/icons/palette.svg',
-                        onTap: _pickColor,
-                      ),
-                    ],
-                  ),
-                  24.verticalSpace,
-                  AspectRatio(
-                    aspectRatio: 0.75,
-                    child: ClipRRect(
-                      clipBehavior: Clip.antiAlias,
-                      borderRadius: BorderRadius.circular(20),
-                      child: GestureDetector(
-                        onPanStart: (details) {
-                          setState(() {
-                            _points.add(details.localPosition);
-                          });
-                        },
-                        onPanUpdate: (details) {
-                          setState(() {
-                            _points.add(details.localPosition);
-                          });
-                        },
-                        onPanEnd: (details) {
-                          _points.add(null);
-                        },
-                        child: Container(
-                          color: Colors.white,
+  Future<void> _shareImageNatively() async {
+    final bytes = await _capturePng();
+    if (bytes != null) {
+      await NativeShareService.shareBytesAsFile(
+        bytes,
+        name: 'my_drawing.png',
+        text: 'рисунок',
+      );
+    }
+  }
 
-                          child: RepaintBoundary(
-                            key: _repaintBoundaryKey,
-                            child: CustomPaint(
-                              painter: DrawingPainter(
-                                points: _points,
-                                color: _currentColor,
-                                strokeWidth: _strokeWidth,
-                                myBackground: _uiImage,
-                              ),
-                              size: Size.infinite,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+  Widget _buildPainterWidget() {
+    return AspectRatio(
+      aspectRatio: 0.75,
+      child: ClipRRect(
+        clipBehavior: Clip.antiAlias,
+        borderRadius: BorderRadius.circular(20),
+        child: GestureDetector(
+          onPanStart: (details) {
+            setState(() {
+              _points.add(details.localPosition);
+            });
+          },
+          onPanUpdate: (details) {
+            setState(() {
+              _points.add(details.localPosition);
+            });
+          },
+          onPanEnd: (details) {
+            _points.add(null);
+          },
+          child: Container(
+            color: Colors.white,
+
+            child: RepaintBoundary(
+              key: _repaintBoundaryKey,
+              child: CustomPaint(
+                painter: DrawingPainter(
+                  points: _points,
+                  color: _currentColor,
+                  strokeWidth: _strokeWidth,
+                  myBackground: _uiImage,
+                ),
+                size: Size.infinite,
               ),
             ),
           ),
@@ -219,7 +159,56 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
     );
   }
 
-  Widget _buildIcons({required String svgPath, required VoidCallback onTap}) {
+  Widget _buildButtons(BuildContext context) {
+    return Row(
+      spacing: 12,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        _buildIcon(
+          svgPath: 'assets/icons/download.svg',
+          onTap: _shareImageNatively,
+        ),
+        _buildIcon(
+          svgPath: 'assets/icons/gallery.svg',
+          onTap: () => _pickImage(context),
+        ),
+        _buildIcon(svgPath: 'assets/icons/pencil.svg', onTap: _pickStrokeWidth),
+        _buildIcon(svgPath: 'assets/icons/clear.svg', onTap: _clear),
+        _buildIcon(svgPath: 'assets/icons/palette.svg', onTap: _pickColor),
+      ],
+    );
+  }
+
+  CustomAppBar _buildAppBar(BuildContext context) {
+    return CustomAppBar(
+      titleText: 'Новое изображение',
+      leading: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: SvgPicture.asset(
+          'assets/icons/arrow_left.svg',
+          height: 24,
+          width: 24,
+        ),
+      ),
+      action: GestureDetector(
+        onTap: () async {
+          final bytes = await _capturePng();
+          if (bytes != null) {
+            setState(() {
+              _capturedImageBytes = bytes;
+            });
+          }
+        },
+        child: SvgPicture.asset(
+          'assets/icons/ready.svg',
+          height: 24,
+          width: 24,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIcon({required String svgPath, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -232,6 +221,31 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
           shape: CircleBorder(),
         ),
         child: SvgPicture.asset(svgPath),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BuildBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _buildAppBar(context),
+        body: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  24.verticalSpace,
+                  _buildButtons(context),
+                  24.verticalSpace,
+                  _buildPainterWidget(),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
