@@ -5,10 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:logger/logger.dart';
 import 'package:simple_painter/app/presentation/authentication/cubit/auth_cubit.dart';
-import 'package:simple_painter/app/presentation/authentication/screen/login_screen.dart';
 import 'package:simple_painter/app/presentation/gallery/cubit/gallery_cubit.dart';
-import 'package:simple_painter/app/presentation/gallery/screen/new_photo.dart';
-
 import 'package:simple_painter/core/di/di_locator.dart' as get_it;
 import 'package:simple_painter/firebase_options.dart';
 import 'package:simple_painter/shared/constants/app_colors.dart';

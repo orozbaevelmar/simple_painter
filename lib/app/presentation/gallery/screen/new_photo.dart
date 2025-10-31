@@ -5,13 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
-//import 'package:gallery_saver_plus/gallery_saver.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:simple_painter/app/presentation/build_backgrodund.dart';
 import 'package:simple_painter/app/presentation/gallery/cubit/gallery_cubit.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/color_picker_dialog.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/drawing_painter.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/stroke_picker.dart';
+import 'package:simple_painter/core/enums/fetch_status.dart';
 import 'package:simple_painter/core/services/native_share_service.dart';
 import 'package:simple_painter/main.dart';
 import 'package:simple_painter/shared/utils/app_bar.dart';
@@ -68,22 +69,24 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
       }
     } catch (e) {
       logger.e(
-        'Error while fetching Image from gallery or while converting to uiImage',
+        'Error: [_pickImage], while fetching Image from gallery or while converting to uiImage',
       );
     }
   }
 
-  Future<void> _saveFileToGallery(File file) async {
-    // try {
-    //   bool? success = await GallerySaver.saveImage(file.path);
-    //   if (success == true) {
-    //     print('Image saved to gallery!');
-    //   } else {
-    //     print('Failed to save image.');
-    //   }
-    // } catch (e) {
-    //   print('Error saving image: $e');
-    // }
+  Future<void> _saveImageToGallery(Uint8List unit8List) async {
+    try {
+      final result = await ImageGallerySaver.saveImage(unit8List);
+      // filePath
+      // isSuccess
+      if (result['isSuccess'] == true) {
+        logger.i('Image saved to gallery!');
+      } else {
+        logger.e('Failed to save image in gallery.');
+      }
+    } catch (e) {
+      logger.e('Error saving image in gallery: $e');
+    }
   }
 
   //   void loadImageFromFirebase(String storagePath) async {
@@ -110,7 +113,7 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
 
   final _repaintBoundaryKey = GlobalKey();
 
-  Uint8List? _capturedImageBytes;
+  //Uint8List? _capturedImageBytes;
   Future<Uint8List?> _capturePng() async {
     try {
       final RenderRepaintBoundary boundary =
@@ -142,26 +145,29 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
   //   return null;
   // }
 
-  Future<File?> _convertToFile() async {
-    final Uint8List? bytes = await _capturePng();
-    if (bytes != null) {
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/my_drawing.png');
-      await file.writeAsBytes(bytes);
+  Future<File> _convertToFile(Uint8List unit8List) async {
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/my_drawing.png');
+    await file.writeAsBytes(unit8List);
 
-      return File(file.path);
-    }
-    return null;
+    return File(file.path);
   }
 
   void sendImageAndSaveToGallery(BuildContext context) async {
     try {
-      final File? file = await _convertToFile();
-      if (file != null) {
-        await _saveFileToGallery(file);
+      final unit8List = await _capturePng();
+      if (unit8List == null) {
         if (context.mounted) {
-          context.read<ImagesCubit>().upload(File(file.path), 'name', 'author');
+          showSnackBar1(context, 'unit8List is null');
         }
+        return;
+      }
+
+      await _saveImageToGallery(unit8List);
+      final File file = await _convertToFile(unit8List);
+      if (context.mounted) {
+        logger.i('--Data sent to Firebase');
+        context.read<ImagesCubit>().upload(File(file.path), 'name', 'author');
       }
     } catch (e) {
       logger.e('Error, method: sendImageAndSaveToGallery, $e');
@@ -254,21 +260,34 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
           width: 24,
         ),
       ),
-      action: GestureDetector(
-        onTap: () => sendImageAndSaveToGallery(context),
-        // () async {
-        //   final bytes = await _capturePng();
-        //   if (bytes != null) {
-        //     setState(() {
-        //       _capturedImageBytes = bytes;
-        //     });
-        //   }
+      action: BlocListener<ImagesCubit, ImagesState>(
+        listener: (context, state) {
+          if (state.status == FetchStatus.success) {
+            Navigator.pop(context);
+          } else if (state.status == FetchStatus.error) {
+            logger.e(state.error ?? 'Error while sending image to firebase');
+            showSnackBar1(
+              context,
+              state.error ?? 'Error while sending image to firebase',
+            );
+          }
+        },
+        child: GestureDetector(
+          onTap: () => sendImageAndSaveToGallery(context),
+          // () async {
+          //   final bytes = await _capturePng();
+          //   if (bytes != null) {
+          //     setState(() {
+          //       _capturedImageBytes = bytes;
+          //     });
+          //   }
 
-        // },
-        child: SvgPicture.asset(
-          'assets/icons/ready.svg',
-          height: 24,
-          width: 24,
+          // },
+          child: SvgPicture.asset(
+            'assets/icons/ready.svg',
+            height: 24,
+            width: 24,
+          ),
         ),
       ),
     );

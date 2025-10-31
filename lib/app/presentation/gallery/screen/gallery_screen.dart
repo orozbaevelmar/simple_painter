@@ -25,8 +25,10 @@ class GalleryScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: _buildAppBar(context),
-
-        body: SafeArea(child: _buildbloc()),
+        body: SafeArea(
+          child: _buildbloc(),
+          //_buildbloc(),
+        ),
       ),
     );
   }
@@ -61,7 +63,7 @@ class GalleryScreen extends StatelessWidget {
 
   Widget _buildSuccesfull(ImagesState state) {
     return GridView.builder(
-      itemCount: state.imagesList.length + 10,
+      itemCount: state.imagesList.length,
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 46.h),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -81,6 +83,10 @@ class GalleryScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+            ),
+            child: Text(
+              state.imagesList[index].author,
+              style: TextStyle(color: Colors.black),
             ),
           ),
         );

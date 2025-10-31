@@ -1,8 +1,10 @@
+//import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+//import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:simple_painter/app/data/authentication/data_sources/remote/auth_remote_data_sources.dart';
@@ -24,13 +26,6 @@ Future<void> init() async {
 
 void _services() {
   getIt
-    // ..registerLazySingleton(() => Dio())
-    // ..registerLazySingleton(
-    //   () => DioApiConsumer(
-    //     baseUrl: ApiConstants.baseUrlWithPath,
-    //     dioClient: getIt<Dio>(),
-    //   ),
-    // )
     ..registerLazySingleton(() => LocalService())
     ..registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance)
     ..registerLazySingleton(() => InternetConnection())

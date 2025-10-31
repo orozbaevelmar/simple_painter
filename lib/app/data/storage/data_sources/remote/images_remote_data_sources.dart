@@ -36,13 +36,13 @@ class ImagesRemoteDataSourceImpl implements ImagesRemoteDataSource {
 
     final imageModel = ImageModel(
       id: id,
-      name: name,
+      title: name,
       url: url,
       date: DateTime.now(),
       author: author,
     );
 
-    //await firestore.collection('images').doc(id).set(imageModel.toMap());
+    await firestore.collection('images').doc(id).set(imageModel.toMap());
     return imageModel;
   }
 

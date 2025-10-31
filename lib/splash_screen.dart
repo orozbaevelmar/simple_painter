@@ -22,6 +22,8 @@ class _SplashScreenState extends State<SplashScreen> {
     //context.read<AuthCubit>().isLoggedIn();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       User? user = FirebaseAuth.instance.currentUser;
+      print('--123');
+      print(user);
       if (user != null) {
         Navigator.pushReplacement(
           context,

@@ -6,14 +6,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ImageModel extends Equatable {
   final String id;
-  final String name;
+  final String title;
   final String url;
   final DateTime date;
   final String author;
 
   const ImageModel({
     required this.id,
-    required this.name,
+    required this.title,
     required this.url,
     required this.date,
     required this.author,
@@ -23,7 +23,7 @@ class ImageModel extends Equatable {
     final data = doc.data() as Map<String, dynamic>;
     return ImageModel(
       id: doc.id,
-      name: data['name'] ?? '',
+      title: data['title'] ?? '',
       url: data['url'] ?? '',
       date: (data['date'] as Timestamp).toDate(),
       author: data['author'] ?? '',
@@ -31,12 +31,12 @@ class ImageModel extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-    'name': name,
+    'title': title,
     'url': url,
     'date': Timestamp.fromDate(date),
     'author': author,
   };
 
   @override
-  List<Object?> get props => [id, name, url, date, author];
+  List<Object?> get props => [id, title, url, date, author];
 }
