@@ -52,8 +52,13 @@ class GalleryScreen extends StatelessWidget {
         }
 
         if (state.status == FetchStatus.error) {
-          print('---Error');
-          return _buildCreateButton(context);
+          return Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
+              child: _buildCreateButton(context),
+            ),
+          );
         } else {
           return Center(child: CircularProgressIndicator());
         }
@@ -72,49 +77,24 @@ class GalleryScreen extends StatelessWidget {
         childAspectRatio: 1,
       ),
       itemBuilder: (context, index) {
+        final model = state.imagesList[index];
         return GestureDetector(
-          onTap: () => Go.to(context, NewPhotoScreen()),
+          onTap: () =>
+              Go.to(context, NewPhotoScreen(backUnit8list: model.imageBytes)),
           child: Container(
+            clipBehavior: Clip.hardEdge,
             decoration: ShapeDecoration(
-              image: DecorationImage(
-                image: NetworkImage(MPictureUrl.url(index: index)),
-                fit: BoxFit.cover,
-              ),
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text(
-              state.imagesList[index].author,
-              style: TextStyle(color: Colors.black),
-            ),
+            child: model.imageBytes != null
+                ? Image.memory(model.imageBytes!, fit: BoxFit.cover)
+                : Image.asset('assets/images/no_image.jpg', fit: BoxFit.cover),
           ),
         );
       },
-    );
-  }
-
-  CustomScrollView _buildCustScrollview(BuildContext context) {
-    return CustomScrollView(
-      physics: ClampingScrollPhysics(),
-      slivers: [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Spacer(),
-
-              100.verticalSpace,
-
-              20.verticalSpace,
-              _buildCreateButton(context),
-
-              20.verticalSpace,
-            ],
-          ),
-        ),
-      ],
     );
   }
 

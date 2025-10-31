@@ -6,25 +6,27 @@ import 'package:simple_painter/main.dart';
 const _tag = '[NativeShareService]';
 
 class NativeShareService {
-  static const _channel = MethodChannel('com.example/native_share');
+  static const MethodChannel _channel = MethodChannel(
+    'com.example.app/share_image',
+  );
 
-  static Future<void> shareBytesAsFile(
-    Uint8List bytes, {
-    String? name,
-    String? text,
+  static Future<void> shareImage({
+    required Uint8List bytes,
+    required String fileName,
+    String message = '',
   }) async {
     try {
-      final tmp = await getTemporaryDirectory();
-      final fileName =
-          name ?? 'drawing_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file = File('${tmp.path}/$fileName');
-      await file.writeAsBytes(bytes, flush: true);
-      await _channel.invokeMethod('shareFile', {
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$fileName');
+      await file.writeAsBytes(bytes);
+
+      // Invoke the native method
+      await _channel.invokeMethod('shareImage', {
         'path': file.path,
-        'text': text ?? '',
+        'message': message, // Pass the message to the native side
       });
-    } catch (e) {
-      logger.e('$_tag, Error sharing Image: $e');
+    } on PlatformException catch (e) {
+      logger.e("Failed to share image: '${e.message}'.");
     }
   }
 }

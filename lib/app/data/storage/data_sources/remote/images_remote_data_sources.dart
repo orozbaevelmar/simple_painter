@@ -5,11 +5,7 @@ import 'package:simple_painter/app/data/storage/models/image_model.dart';
 import 'package:uuid/uuid.dart';
 
 abstract class ImagesRemoteDataSource {
-  Future<ImageModel> uploadFile({
-    required File file,
-    required String name,
-    required String author,
-  });
+  Future<ImageModel> uploadFile({required ImageModel model});
   Stream<List<ImageModel>> imagesStream();
 }
 
@@ -22,28 +18,16 @@ class ImagesRemoteDataSourceImpl implements ImagesRemoteDataSource {
   });
 
   @override
-  Future<ImageModel> uploadFile({
-    required File file,
-    required String name,
-    required String author,
-  }) async {
+  Future<ImageModel> uploadFile({required ImageModel model}) async {
     final id = Uuid().v4();
-    final path = 'images/$id.jpg';
-    final ref = firebaseStorage.ref().child(path);
+    //final path = 'images/$id.jpg';
+    //final ref = firebaseStorage.ref().child(path);
 
-    final uploadTask = await ref.putFile(file);
-    final url = await ref.getDownloadURL();
+    // final uploadTask = await ref.putFile(file);
+    // final url = await ref.getDownloadURL();
 
-    final imageModel = ImageModel(
-      id: id,
-      title: name,
-      url: url,
-      date: DateTime.now(),
-      author: author,
-    );
-
-    await firestore.collection('images').doc(id).set(imageModel.toMap());
-    return imageModel;
+    await firestore.collection('images').doc(id).set(model.toMap());
+    return model;
   }
 
   @override

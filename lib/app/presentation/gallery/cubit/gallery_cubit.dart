@@ -29,14 +29,11 @@ class ImagesCubit extends Cubit<ImagesState> {
     );
   }
 
-  Future<void> upload(File file, String name, String author) async {
+  Future<void> upload(ImageModel model) async {
     emit(state.copyWith(status: FetchStatus.loading));
+    await _imagesRepository.uploadImage(model: model);
     try {
-      await _imagesRepository.uploadImage(
-        file: file,
-        name: name,
-        author: author,
-      );
+      await _imagesRepository.uploadImage(model: model);
       emit(state.copyWith(status: FetchStatus.success));
     } catch (e) {
       emit(state.copyWith(error: e.toString(), status: FetchStatus.error));

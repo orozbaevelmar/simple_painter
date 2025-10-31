@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:simple_painter/app/data/storage/models/image_model.dart';
 import 'package:simple_painter/app/presentation/build_backgrodund.dart';
 import 'package:simple_painter/app/presentation/gallery/cubit/gallery_cubit.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/color_picker_dialog.dart';
@@ -22,13 +24,27 @@ import 'package:path_provider/path_provider.dart';
 import 'package:simple_painter/shared/utils/snackbar.dart';
 
 class NewPhotoScreen extends StatefulWidget {
-  const NewPhotoScreen({super.key});
+  final Uint8List? backUnit8list;
+  const NewPhotoScreen({super.key, this.backUnit8list});
 
   @override
   State<NewPhotoScreen> createState() => _NewPhotoScreenState();
 }
 
 class _NewPhotoScreenState extends State<NewPhotoScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.backUnit8list != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final decodedImag = await decodeImageFromList(widget.backUnit8list!);
+        setState(() {
+          _uiImage = decodedImag;
+        });
+      });
+    }
+  }
+
   final List<Offset?> _points = [];
 
   Color _currentColor = Colors.red;
@@ -53,6 +69,7 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
 
   //File? file;
   ui.Image? _uiImage;
+
   void _pickImage(BuildContext context) async {
     try {
       File? galleryFile = await pickImage(context, ImageSource.gallery);
@@ -88,26 +105,6 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
       logger.e('Error saving image in gallery: $e');
     }
   }
-
-  //   void loadImageFromFirebase(String storagePath) async {
-  //   try {
-  //     // 'images/abc.jpg'
-  //     final ref = FirebaseStorage.instance.ref().child(storagePath);
-
-  //     final maxSize = 10 * 1024 * 1024;
-  //     final Uint8List? data = await ref.getData(maxSize);
-
-  //     if (data == null) throw Exception('No data from storage');
-
-  //     final ui.Image image = await decodeImageFromList(data);
-  //     setState(() {
-  //       _uiImage = image;
-  //     });
-  //   } catch (e, st) {
-  //
-  //     print('Error loading image from Firebase: $e\n$st');
-  //   }
-  // }
 
   void _clear() => setState(() => _points.clear());
 
@@ -153,6 +150,57 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
     return File(file.path);
   }
 
+  // Future<File?> compressImage(
+  //   File file, {
+  //   int maxSizeInBytes = 1024 * 1024,
+  // }) async {
+  //   int quality = 95;
+  //   XFile? compressedFile;
+  //   final dir = await getTemporaryDirectory();
+
+  //   final targetPath = path.join(
+  //     dir.path,
+  //     'compressed_${path.basename(file.path)}',
+  //   );
+
+  //   do {
+  //     compressedFile = await FlutterImageCompress.compressAndGetFile(
+  //       file.path,
+  //       targetPath,
+  //       quality: quality,
+  //     );
+
+  //     if (compressedFile == null) break;
+
+  //     final fileSize = await compressedFile.length();
+  //     if (fileSize <= maxSizeInBytes) break;
+
+  //     quality -= 5;
+  //   } while (quality > 10);
+
+  //   return compressedFile != null ? File(compressedFile.path) : null;
+  // }
+
+  Future<Uint8List?> compressUint8List(
+    Uint8List inputBytes, {
+    int maxSizeInBytes = 1024 * 1024,
+  }) async {
+    int quality = 95;
+    Uint8List? result;
+
+    do {
+      result = await FlutterImageCompress.compressWithList(
+        inputBytes,
+        quality: quality,
+      );
+
+      if (result.lengthInBytes <= maxSizeInBytes) break;
+      quality -= 5; // reduce quality step by step
+    } while (quality > 10);
+
+    return result;
+  }
+
   void sendImageAndSaveToGallery(BuildContext context) async {
     try {
       final unit8List = await _capturePng();
@@ -164,10 +212,22 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
       }
 
       await _saveImageToGallery(unit8List);
-      final File file = await _convertToFile(unit8List);
+      //final File file = await _convertToFile(unit8List);
+      Uint8List? compressedBytes = await compressUint8List(unit8List);
       if (context.mounted) {
         logger.i('--Data sent to Firebase');
-        context.read<ImagesCubit>().upload(File(file.path), 'name', 'author');
+        // List<int> imageBytes = await file.readAsBytes();
+        // String base64Image = base64Encode(imageBytes);
+
+        context.read<ImagesCubit>().upload(
+          ImageModel(
+            title: 'my_paint',
+
+            date: DateTime.now(),
+            author: 'Elmar',
+            imageBytes: compressedBytes,
+          ),
+        );
       }
     } catch (e) {
       logger.e('Error, method: sendImageAndSaveToGallery, $e');
@@ -179,13 +239,13 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
 
   Future<void> _shareImageNatively() async {
     final bytes = await _capturePng();
-    if (bytes != null) {
-      await NativeShareService.shareBytesAsFile(
-        bytes,
-        name: 'my_drawing.png',
-        text: 'рисунок',
-      );
+    if (bytes == null) {
+      logger.e('_shareImageNatively method bytes is null');
+      return;
     }
+    final file = await _convertToFile(bytes);
+
+    await NativeShareService.shareImage(bytes: bytes, fileName: 'my_image.png');
   }
 
   Widget _buildPainterWidget() {

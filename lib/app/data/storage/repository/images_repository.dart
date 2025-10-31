@@ -4,11 +4,7 @@ import 'package:simple_painter/app/data/storage/data_sources/remote/images_remot
 import 'package:simple_painter/app/data/storage/models/image_model.dart';
 
 abstract class ImagesRepository {
-  Future<ImageModel> uploadImage({
-    required File file,
-    required String name,
-    required String author,
-  });
+  Future<ImageModel> uploadImage({required ImageModel model});
 
   Stream<List<ImageModel>> getImagesStream();
 }
@@ -18,16 +14,8 @@ class ImageRepositoryImpl implements ImagesRepository {
   ImageRepositoryImpl({required this.imagesRemoteDataSource});
 
   @override
-  Future<ImageModel> uploadImage({
-    required File file,
-    required String name,
-    required String author,
-  }) {
-    return imagesRemoteDataSource.uploadFile(
-      file: file,
-      name: name,
-      author: author,
-    );
+  Future<ImageModel> uploadImage({required ImageModel model}) {
+    return imagesRemoteDataSource.uploadFile(model: model);
   }
 
   @override
