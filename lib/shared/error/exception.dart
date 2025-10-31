@@ -36,12 +36,12 @@ class ConflictException extends ServerException {
 
 class InternalServerErrorException extends ServerException {
   const InternalServerErrorException([message])
-      : super(message ?? "internalServerError");
+    : super(message ?? "internalServerError");
 }
 
 class NoInternetConnectionException extends ServerException {
   const NoInternetConnectionException([message])
-      : super(message ?? "internetConnectionError");
+    : super(message ?? "internetConnectionError");
 }
 
 class LaunchUrlException extends ServerException {
@@ -50,7 +50,7 @@ class LaunchUrlException extends ServerException {
 
 class UnknownServerException extends ServerException {
   const UnknownServerException([message])
-      : super(message ?? "unknownErrorTryAgain");
+    : super(message ?? "unknownErrorTryAgain");
 }
 
 class CacheException extends Equatable implements Exception {
@@ -71,6 +71,85 @@ class TokensException extends Equatable implements Exception {
   final String? message;
 
   const TokensException([this.message]);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class OfflineException extends Equatable implements Exception {
+  final String? message;
+
+  const OfflineException([this.message]);
+
+  @override
+  List<Object?> get props => [message];
+
+  @override
+  String toString() {
+    return '$message';
+  }
+}
+
+class WeekPassException extends Equatable implements Exception {
+  final String? message;
+
+  const WeekPassException([this.message]);
+
+  @override
+  List<Object?> get props => [message];
+
+  @override
+  String toString() {
+    return '$message';
+  }
+}
+
+class ExistedAccountException extends Equatable implements Exception {
+  final String? message;
+
+  const ExistedAccountException([this.message]);
+
+  @override
+  List<Object?> get props => [message];
+
+  @override
+  String toString() {
+    return '$message';
+  }
+}
+
+class NoUserException extends Equatable implements Exception {
+  final String? message;
+
+  const NoUserException([this.message]);
+
+  @override
+  List<Object?> get props => [message];
+
+  @override
+  String toString() {
+    return '$message';
+  }
+}
+
+class WrongPasswordException extends Equatable implements Exception {
+  final String? message;
+
+  const WrongPasswordException([this.message]);
+
+  @override
+  List<Object?> get props => [message];
+
+  @override
+  String toString() {
+    return '$message';
+  }
+}
+
+class TooManyRequestsException extends Equatable implements Exception {
+  final String? message;
+
+  const TooManyRequestsException([this.message]);
 
   @override
   List<Object?> get props => [message];

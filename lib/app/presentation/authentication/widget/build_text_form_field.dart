@@ -11,7 +11,7 @@ class BuildTextFormField extends StatelessWidget {
   final TextEditingController controller;
   final Function(String text)? onChanged;
   final String? Function(String?)? validator;
-  final bool isPassword = false;
+  final bool isPassword;
   const BuildTextFormField({
     super.key,
     required this.title,
@@ -19,7 +19,7 @@ class BuildTextFormField extends StatelessWidget {
     required this.controller,
     this.onChanged,
     required this.validator,
-    bool isPassword = false,
+    this.isPassword = false,
   });
 
   @override

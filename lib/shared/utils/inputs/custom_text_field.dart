@@ -56,17 +56,17 @@ class CustomTextFormField extends StatefulWidget {
 }
 
 class _CustomTextFormFieldState extends State<CustomTextFormField> {
-  @override
-  void initState() {
-    hidePassword = widget.isPassword ? true : false;
-    super.initState();
-  }
+  // @override
+  // void initState() {
+  //   hidePassword = widget.isPassword ? true : false;
+  //   super.initState();
+  // }
 
-  bool hidePassword = true;
+  // bool hidePassword = true;
   @override
   Widget build(BuildContext context) {
     return TextFormField(
-      obscureText: hidePassword,
+      obscureText: widget.isPassword,
       obscuringCharacter: '*',
       enableSuggestions: !(widget.isPassword),
       autocorrect: !(widget.isPassword),

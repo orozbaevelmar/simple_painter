@@ -1,75 +1,62 @@
-import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:simple_painter/app/data/authentication/models/login_model.dart';
 import 'package:simple_painter/app/data/authentication/models/register_model.dart';
-import 'package:simple_painter/main.dart';
-import 'package:simple_painter/shared/api/dio_consumer.dart';
-import 'package:simple_painter/shared/constants/api_constants.dart';
-import 'package:simple_painter/shared/utils/hanlde_response.dart';
+import 'package:simple_painter/shared/error/exception.dart';
 
-const _tag = '[AuthRemoteDataSources]';
-
-abstract class AuthRemoteDataSources {
-  Future<LoginModel?> login({required String email, required String password});
-  Future<LoginModel?> register({required RegisterModel registerModel});
+abstract class AuthRemoteDataSource {
+  Future<UserCredential> register(RegisterModel registerModel);
+  Future<UserCredential> login(LoginModel loginModel);
 }
 
-class AuthRemoteDataSourcesImpl implements AuthRemoteDataSources {
-  AuthRemoteDataSourcesImpl({required DioApiConsumer dioApiConsumer})
-    : _dioApiConsumer = dioApiConsumer;
+class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
+  AuthRemoteDataSourceImpl({required FirebaseAuth firebaseAuth})
+    : _firebaseAuth = firebaseAuth;
 
-  final DioApiConsumer _dioApiConsumer;
+  final FirebaseAuth _firebaseAuth;
 
   @override
-  Future<LoginModel?> register({required RegisterModel registerModel}) async {
-    logger.d('$_tag, register');
-
+  Future<UserCredential> login(LoginModel loginModel) async {
     try {
-      final Response response = await _dioApiConsumer.post(
-        ApiConstants.register,
-        data: registerModel.toJson(),
+      await _firebaseAuth.currentUser?.reload();
+      return await _firebaseAuth.signInWithEmailAndPassword(
+        email: loginModel.email,
+        password: loginModel.password,
       );
-
-      return handleApiResponse<LoginModel>(
-        response,
-        (data) => LoginModel.fromJson(data),
-        className: _tag,
-        methodName: 'register',
-      );
-    } on DioException catch (e) {
-      logger.e('$_tag, Ошибка сети: ${e.message}');
-      return null;
-    } catch (e) {
-      logger.e('$_tag, Неизвестная ошибка: $e');
-      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        throw ExistedAccountException();
+      } else if (e.code == 'wrong-password') {
+        throw WrongPasswordException();
+      } else {
+        throw ServerException(e.toString());
+      }
     }
   }
 
-  // Login
   @override
-  Future<LoginModel?> login({
-    required String email,
-    required String password,
-  }) async {
-    logger.d('$_tag, login');
-
+  Future<UserCredential> register(RegisterModel registerModel) async {
     try {
-      final Response response = await _dioApiConsumer.post(
-        ApiConstants.login,
-        data: {"email": email, "password": password},
-      );
+      await _firebaseAuth.currentUser?.reload();
 
-      return handleApiResponse<LoginModel>(
-        response,
-        (data) => LoginModel.fromJson(data),
-        className: _tag,
-        methodName: 'login',
-      );
-    } on DioException catch (e) {
-      logger.e('$_tag, Ошибка сети: ${e.message}');
-      return null;
-    } catch (e) {
-      logger.e('$_tag, Неизвестная ошибка: $e');
-      return null;
+      final UserCredential userCredential = await _firebaseAuth
+          .createUserWithEmailAndPassword(
+            email: registerModel.email,
+            password: registerModel.password,
+          );
+      User? user = userCredential.user;
+      if (user != null) {
+        await user.updateDisplayName(registerModel.firstName);
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        throw WeekPassException();
+      } else if (e.code == 'email-already-in-use') {
+        throw ExistedAccountException();
+      } else {
+        throw ServerException();
+      }
     }
   }
 }

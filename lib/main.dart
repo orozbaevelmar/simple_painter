@@ -1,13 +1,18 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:logger/logger.dart';
-import 'package:simple_painter/app/presentation/authentication/cubit/authentication_cubit.dart';
+import 'package:simple_painter/app/presentation/authentication/cubit/auth_cubit.dart';
+import 'package:simple_painter/app/presentation/authentication/screen/login_screen.dart';
+import 'package:simple_painter/app/presentation/gallery/cubit/gallery_cubit.dart';
 import 'package:simple_painter/app/presentation/gallery/screen/new_photo.dart';
 
 import 'package:simple_painter/core/di/di_locator.dart' as get_it;
+import 'package:simple_painter/firebase_options.dart';
 import 'package:simple_painter/shared/constants/app_colors.dart';
+import 'package:simple_painter/splash_screen.dart';
 
 var logger = Logger(
   printer: PrettyPrinter(
@@ -23,7 +28,7 @@ var logger = Logger(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  //await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   get_it.init();
   await get_it.getIt.allReady();
@@ -37,7 +42,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [BlocProvider(create: (_) => AuthenticationCubit())],
+      providers: [
+        BlocProvider(create: (_) => AuthCubit()),
+        BlocProvider(create: (_) => ImagesCubit()),
+      ],
       child: ScreenUtilInit(
         designSize: const Size(414, 896),
         minTextAdapt: true,
@@ -54,7 +62,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             ),
-            home: NewPhotoScreen(),
+            home: SplashScreen(),
           ),
         ),
       ),

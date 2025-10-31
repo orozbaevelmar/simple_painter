@@ -1,13 +1,14 @@
 import 'dart:io';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
+//import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:simple_painter/app/presentation/build_backgrodund.dart';
+import 'package:simple_painter/app/presentation/gallery/cubit/gallery_cubit.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/color_picker_dialog.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/drawing_painter.dart';
 import 'package:simple_painter/app/presentation/gallery/widget/stroke_picker.dart';
@@ -15,8 +16,9 @@ import 'package:simple_painter/core/services/native_share_service.dart';
 import 'package:simple_painter/main.dart';
 import 'package:simple_painter/shared/utils/app_bar.dart';
 import 'package:simple_painter/shared/utils/pick_image.dart';
-import 'dart:ui' as ui show Image;
+import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
+import 'package:simple_painter/shared/utils/snackbar.dart';
 
 class NewPhotoScreen extends StatefulWidget {
   const NewPhotoScreen({super.key});
@@ -48,9 +50,8 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
     if (strokeWidth != null) setState(() => _strokeWidth = strokeWidth);
   }
 
-  File? file;
+  //File? file;
   ui.Image? _uiImage;
-
   void _pickImage(BuildContext context) async {
     try {
       File? galleryFile = await pickImage(context, ImageSource.gallery);
@@ -72,6 +73,39 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
     }
   }
 
+  Future<void> _saveFileToGallery(File file) async {
+    // try {
+    //   bool? success = await GallerySaver.saveImage(file.path);
+    //   if (success == true) {
+    //     print('Image saved to gallery!');
+    //   } else {
+    //     print('Failed to save image.');
+    //   }
+    // } catch (e) {
+    //   print('Error saving image: $e');
+    // }
+  }
+
+  //   void loadImageFromFirebase(String storagePath) async {
+  //   try {
+  //     // 'images/abc.jpg'
+  //     final ref = FirebaseStorage.instance.ref().child(storagePath);
+
+  //     final maxSize = 10 * 1024 * 1024;
+  //     final Uint8List? data = await ref.getData(maxSize);
+
+  //     if (data == null) throw Exception('No data from storage');
+
+  //     final ui.Image image = await decodeImageFromList(data);
+  //     setState(() {
+  //       _uiImage = image;
+  //     });
+  //   } catch (e, st) {
+  //
+  //     print('Error loading image from Firebase: $e\n$st');
+  //   }
+  // }
+
   void _clear() => setState(() => _points.clear());
 
   final _repaintBoundaryKey = GlobalKey();
@@ -86,7 +120,7 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
 
       final ByteData? byteData = await image.toByteData(
-        format: ImageByteFormat.png,
+        format: ui.ImageByteFormat.png,
       );
 
       return byteData?.buffer.asUint8List();
@@ -96,14 +130,44 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
     }
   }
 
-  Future<void> _convertToFile() async {
-    final bytes = await _capturePng();
+  // Future<XFile?> _convertToFile() async {
+  //   final bytes = await _capturePng();
+  //   if (bytes != null) {
+  //     return XFile.fromData(
+  //       bytes,
+  //       name: 'my_drawing.png',
+  //       mimeType: 'image/png',
+  //     );
+  //   }
+  //   return null;
+  // }
+
+  Future<File?> _convertToFile() async {
+    final Uint8List? bytes = await _capturePng();
     if (bytes != null) {
-      final xFile = XFile.fromData(
-        bytes,
-        name: 'my_drawing.png',
-        mimeType: 'image/png',
-      );
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/my_drawing.png');
+      await file.writeAsBytes(bytes);
+
+      return File(file.path);
+    }
+    return null;
+  }
+
+  void sendImageAndSaveToGallery(BuildContext context) async {
+    try {
+      final File? file = await _convertToFile();
+      if (file != null) {
+        await _saveFileToGallery(file);
+        if (context.mounted) {
+          context.read<ImagesCubit>().upload(File(file.path), 'name', 'author');
+        }
+      }
+    } catch (e) {
+      logger.e('Error, method: sendImageAndSaveToGallery, $e');
+      if (context.mounted) {
+        showSnackBar1(context, e.toString());
+      }
     }
   }
 
@@ -191,14 +255,16 @@ class _NewPhotoScreenState extends State<NewPhotoScreen> {
         ),
       ),
       action: GestureDetector(
-        onTap: () async {
-          final bytes = await _capturePng();
-          if (bytes != null) {
-            setState(() {
-              _capturedImageBytes = bytes;
-            });
-          }
-        },
+        onTap: () => sendImageAndSaveToGallery(context),
+        // () async {
+        //   final bytes = await _capturePng();
+        //   if (bytes != null) {
+        //     setState(() {
+        //       _capturedImageBytes = bytes;
+        //     });
+        //   }
+
+        // },
         child: SvgPicture.asset(
           'assets/icons/ready.svg',
           height: 24,

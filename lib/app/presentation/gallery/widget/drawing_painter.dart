@@ -12,7 +12,6 @@ class DrawingPainter extends CustomPainter {
     required this.color,
     required this.strokeWidth,
     this.myBackground,
-    my,
   });
 
   @override

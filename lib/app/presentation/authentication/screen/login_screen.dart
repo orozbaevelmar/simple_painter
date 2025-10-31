@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:simple_painter/app/data/authentication/models/login_model.dart';
+import 'package:simple_painter/app/presentation/authentication/cubit/auth_cubit.dart';
 import 'package:simple_painter/app/presentation/authentication/widget/build_text_form_field.dart';
 import 'package:simple_painter/app/presentation/build_backgrodund.dart';
 import 'package:simple_painter/app/presentation/gallery/screen/gallery_screen.dart';
+import 'package:simple_painter/core/enums/fetch_status.dart';
 import 'package:simple_painter/shared/constants/app_colors.dart';
 import 'package:simple_painter/app/presentation/authentication/screen/register_screen.dart';
 import 'package:simple_painter/shared/constants/app_textstyle.dart';
 import 'package:simple_painter/shared/constants/m_go.dart';
 import 'package:simple_painter/shared/utils/bottoms/custom_button.dart';
+import 'package:simple_painter/shared/utils/snackbar.dart';
 import 'package:simple_painter/shared/validatiors/validators.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -38,15 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    Go.to(context, GalleryScreen());
-
-    // context
-    //     .read<AuthenticationCubit>()
-    //     .resetpasswordByCode(
-    //       email: state.verificationModel!.email,
-    //       code: state.verificationModel!.code!,
-    //       newPassword: _password1Ctl.text,
-    //     );
+    context.read<AuthCubit>().login(
+      loginModel: LoginModel(email: _emailCtrl.text, password: _password.text),
+    );
   }
 
   @override
@@ -99,26 +98,40 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         Spacer(),
                         20.verticalSpace,
-                        CustomButton(
-                          onTap: onTapLogin,
-                          text: 'Войти',
-                          heightH: 48,
-                          width: double.infinity,
-                          decoration: ShapeDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment(0.50, -0.00),
-                              end: Alignment(0.50, 1.00),
-                              colors: AppColors.grad1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
+                        BlocConsumer<AuthCubit, AuthState>(
+                          listener: (context, state) {
+                            if (state.status == FetchStatus.success) {
+                              Go.pushAndRemoveUntil(context, GalleryScreen());
+                            } else if (state.status == FetchStatus.error) {
+                              showSnackBar1(context, state.error ?? 'Error');
+                            }
+                          },
+                          builder: (context, state) {
+                            return CustomButton(
+                              isLoading: state.status == FetchStatus.loading,
+                              onTap: onTapLogin,
+                              text: 'Войти',
+                              alignment: Alignment.center,
+                              heightH: 48,
+                              width: double.infinity,
+                              decoration: ShapeDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment(0.50, -0.00),
+                                  end: Alignment(0.50, 1.00),
+                                  colors: AppColors.grad1,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         19.verticalSpace,
                         CustomButton(
                           onTap: () => Go.to(context, RegisterScreen()),
                           text: 'Регистрация',
+                          alignment: Alignment.center,
                           textStyle: AppTextStyle.roboto_def_14_500(
                             fontSize: 17,
                             height: 1.41,
