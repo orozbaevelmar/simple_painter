@@ -1,19 +1,7 @@
-# simple_painter
+# Simple Painter
 
-A new Flutter project.
+Здесь использована не полная clean architecture — отсутствует слой domain, чтобы быстрее завершить тестовое задание. Кроме того, я работал с Cubit. 
 
-## Getting Started
+Чтобы сохранить изображение в Firebase, так как Firebase Storage является платным, я сохранил изображение в Firebase Firestore Database. Изображение было сохранено как строка base64.
 
-
-ios Podfile
-after deleting this:
-pod 'FirebaseFirestore', :git => 'https://github.com/invertase/firestore-ios-sdk-frameworks.git', :tag => '12.4.0'
-in TErminal 
-cd ios
-rm -rf Pods Podfile.lock
-pod repo update
-pod install --verbose
-cd ..
-flutter clean
-flutter pub get
-flutter run
+Есть возможность поделиться с рисунком и оно реализована нативно через FlutterMethodChannel.
